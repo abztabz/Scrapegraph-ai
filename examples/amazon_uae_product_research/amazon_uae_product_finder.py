@@ -46,7 +46,7 @@ import json
 import os
 import sys
 from dataclasses import asdict, dataclass, field
-from typing import List, Optional
+from typing import Callable, List, Optional
 from urllib.parse import quote_plus
 
 from pydantic import BaseModel, Field
@@ -320,15 +320,25 @@ def score(opp: ProductOpportunity, has_china_data: bool) -> ProductOpportunity:
 class AmazonUAEProductFinder:
     """Orchestrates search -> enrich -> source -> score for Amazon UAE."""
 
-    def __init__(self, graph_config: dict, source_china: bool = False, verbose: bool = True):
+    def __init__(
+        self,
+        graph_config: dict,
+        source_china: bool = False,
+        verbose: bool = True,
+        progress_callback: Optional[Callable[[str], None]] = None,
+    ):
         self.graph_config = graph_config
         self.source_china = source_china
         self.verbose = verbose
+        # Optional hook so a UI (e.g. the web app) can surface live progress.
+        self.progress_callback = progress_callback
 
     # -- logging -----------------------------------------------------------
     def _log(self, message: str) -> None:
         if self.verbose:
             print(message, flush=True)
+        if self.progress_callback is not None:
+            self.progress_callback(message.strip())
 
     # -- step 1: search ----------------------------------------------------
     def search_keyword(self, keyword: str, max_products: int) -> List[SearchResultProduct]:

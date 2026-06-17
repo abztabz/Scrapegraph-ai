@@ -99,6 +99,61 @@ python amazon_uae_product_finder.py --keywords-file keywords.example.txt --sourc
 - `<output>.csv` and `<output>.json` with every evaluated product and all
   sub-scores, for sorting/filtering in a spreadsheet.
 
+---
+
+## 📱 Web app (use it from your iPhone)
+
+Prefer tapping a button to typing CLI flags? There's a mobile-first web UI in
+[`web/`](web/) that wraps the same finder. It needs **no extra dependencies** —
+just Python's standard library and `scrapegraphai`.
+
+```bash
+export OPENAI_APIKEY="sk-..."        # or run a local ollama model
+cd web
+python app.py
+```
+
+It prints two URLs:
+
+```
+On this computer:  http://localhost:8000
+On your iPhone:    http://192.168.x.x:8000   <-- open this on your phone
+```
+
+Open the second URL in Safari on your iPhone (the phone must be on the **same
+Wi-Fi network** as the computer running the server). Tip: in Safari use
+*Share → Add to Home Screen* to get an app-like icon.
+
+### What you get
+
+- A touch-friendly form: keywords, products-per-keyword, model, and a
+  “find China supplier & estimate margin” toggle.
+- A **live progress bar** while it scrapes (research takes a while, so the page
+  polls in the background instead of hanging).
+- Ranked **result cards** with a colour-coded opportunity score, the key
+  metrics (price, monthly sales, reviews, rating, BSR, competitors), the
+  demand / low-competition / margin sub-score bars, the China sourcing line,
+  and links to the Amazon listing and supplier.
+
+### How it works
+
+```
+iPhone (Safari)  ──HTTP──►  app.py (stdlib http.server)
+                               │  POST /api/search  -> starts a background job
+                               │  GET  /api/status  -> live progress + results
+                               ▼
+                     AmazonUAEProductFinder  (the same engine as the CLI)
+```
+
+Jobs run in a background thread and results stream in ranked order, so the best
+products surface on top as they're found. The server binds to `0.0.0.0:8000` by
+default; override with `HOST` / `PORT` env vars.
+
+> **Heads-up:** this is a lightweight single-user tool meant to run on your own
+> machine/LAN. It has no authentication — don't expose it to the public
+> internet. For sharing, put it behind a reverse proxy with auth, or use the
+> hosted ScrapeGraphAI API.
+
 ## CLI options
 
 | Flag | Default | Description |
