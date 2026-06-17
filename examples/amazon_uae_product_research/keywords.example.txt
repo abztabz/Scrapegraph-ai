@@ -1,0 +1,10 @@
+# Seed niches/keywords to research on Amazon UAE.
+# One per line. Lines starting with '#' are ignored.
+yoga mat
+resistance bands
+car phone holder
+led strip lights
+stainless steel water bottle
+posture corrector
+laptop stand
+reusable storage bags
