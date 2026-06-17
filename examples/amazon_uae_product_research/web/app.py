@@ -60,6 +60,16 @@ except ImportError as exc:  # pragma: no cover
 
 INDEX_HTML = (THIS_DIR / "index.html").read_text(encoding="utf-8")
 
+# Optional QR-code convenience: if the (pure-Python) `qrcode` package is
+# installed we render a scannable code so you can open the app on your phone
+# without typing the IP. The app works fine without it.
+try:
+    import qrcode  # noqa: E402
+
+    HAVE_QRCODE = True
+except ImportError:
+    HAVE_QRCODE = False
+
 # In-memory job store. Fine for a single-user, run-it-on-your-laptop tool.
 JOBS: Dict[str, dict] = {}
 JOBS_LOCK = threading.Lock()
@@ -68,6 +78,43 @@ JOBS_LOCK = threading.Lock()
 # ----------------------------------------------------------------------------
 # Config
 # ----------------------------------------------------------------------------
+
+
+def qr_svg(data: str) -> Optional[str]:
+    """Render `data` as a self-contained SVG QR code (no PIL/lxml needed).
+
+    Returns None if the optional `qrcode` package isn't installed. We take the
+    raw module matrix (which already includes the quiet-zone border) and draw
+    one black rect per dark module on a unit grid, scaled via viewBox so it
+    stays crisp at any size on a Retina screen.
+    """
+    if not HAVE_QRCODE:
+        return None
+    qr = qrcode.QRCode(
+        error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=1, border=4
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    matrix = qr.get_matrix()
+    n = len(matrix)
+    rects = []
+    for y, row in enumerate(matrix):
+        x = 0
+        while x < n:
+            if row[x]:
+                # Merge consecutive dark modules in a row into one rect (smaller SVG).
+                start = x
+                while x < n and row[x]:
+                    x += 1
+                rects.append(f'<rect x="{start}" y="{y}" width="{x - start}" height="1"/>')
+            else:
+                x += 1
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {n} {n}" '
+        f'shape-rendering="crispEdges" width="180" height="180">'
+        f'<rect width="{n}" height="{n}" fill="#ffffff"/>'
+        f'<g fill="#0b1020">{"".join(rects)}</g></svg>'
+    )
 
 
 def build_graph_config(model: str, api_key: Optional[str]) -> dict:
@@ -195,6 +242,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, INDEX_HTML.encode("utf-8"), "text/html; charset=utf-8")
         elif path == "/api/status":
             self._handle_status()
+        elif path == "/api/info":
+            self._handle_info()
         elif path == "/health":
             self._send_json(200, {"ok": True})
         else:
@@ -247,6 +296,19 @@ class Handler(BaseHTTPRequestHandler):
             daemon=True,
         ).start()
         self._send_json(200, {"id": job_id})
+
+    def _handle_info(self) -> None:
+        """Connection details for the 'open on your phone' card."""
+        port = self.server.server_address[1]
+        lan_url = f"http://{_lan_ip()}:{port}"
+        self._send_json(
+            200,
+            {
+                "lan_url": lan_url,
+                "qr_svg": qr_svg(lan_url),
+                "qr_available": HAVE_QRCODE,
+            },
+        )
 
     def _handle_status(self) -> None:
         params = parse_qs(urlparse(self.path).query)

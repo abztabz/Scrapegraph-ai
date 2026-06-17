@@ -124,6 +124,20 @@ Open the second URL in Safari on your iPhone (the phone must be on the **same
 Wi-Fi network** as the computer running the server). Tip: in Safari use
 *Share → Add to Home Screen* to get an app-like icon.
 
+#### 📷 Scan-to-open (QR code)
+
+So you don't have to type the IP, the landing page shows an **“Open on your
+iPhone” card with a QR code** — point your Camera app at it and tap the
+notification. The QR is generated locally and rendered as a crisp SVG.
+
+This uses the tiny, pure-Python [`qrcode`](https://pypi.org/project/qrcode/)
+package. It's **optional** — the app runs fine without it and just shows the
+URL to type. To enable the QR:
+
+```bash
+pip install qrcode
+```
+
 ### What you get
 
 - A touch-friendly form: keywords, products-per-keyword, model, and a

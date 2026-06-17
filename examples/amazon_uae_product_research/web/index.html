@@ -118,6 +118,16 @@
   .links a { font-size: 13px; color: var(--accent); text-decoration: none;
              border: 1px solid var(--line); padding: 7px 12px; border-radius: 10px; }
   .notes { margin-top: 8px; font-size: 11px; color: var(--muted); font-style: italic; }
+  .phone-card { padding: 14px; }
+  .phone-row { display: flex; gap: 14px; align-items: center; }
+  .qr { flex: none; width: 96px; height: 96px; background: #fff; border-radius: 12px;
+        padding: 6px; display: flex; align-items: center; justify-content: center; }
+  .qr svg { width: 100%; height: 100%; border-radius: 6px; }
+  .phone-text { min-width: 0; }
+  .phone-title { font-weight: 700; font-size: 15px; }
+  .phone-sub { color: var(--muted); font-size: 12px; margin: 4px 0 8px; }
+  .phone-url { display: inline-block; color: var(--accent); font-size: 15px;
+               font-weight: 700; text-decoration: none; word-break: break-all; }
   .empty { color: var(--muted); text-align: center; padding: 30px 10px; }
   .error { color: var(--bad); }
   footer { text-align: center; color: var(--muted); font-size: 11px; margin-top: 18px; padding: 0 16px; }
@@ -130,6 +140,17 @@
 </header>
 
 <main>
+  <div class="card phone-card" id="phoneCard" style="display:none">
+    <div class="phone-row">
+      <div class="qr" id="qrBox"></div>
+      <div class="phone-text">
+        <div class="phone-title">📱 Open on your iPhone</div>
+        <div class="phone-sub" id="phoneSub">Scan with the Camera app, or type the address below.</div>
+        <a class="phone-url" id="phoneUrl" href="#"></a>
+      </div>
+    </div>
+  </div>
+
   <form id="form" class="card">
     <label for="keywords">Keywords / niches (comma or new line)</label>
     <textarea id="keywords" placeholder="yoga mat, resistance bands, car phone holder"></textarea>
@@ -266,6 +287,26 @@ async function poll(id) {
     $('statusMsg').textContent = 'Connection lost, retrying…';
   }
 }
+
+async function loadPhoneInfo() {
+  try {
+    const info = await (await fetch('/api/info')).json();
+    if (!info.lan_url) return;
+    // Don't nag if you're already browsing from the phone (same host as the LAN URL).
+    const lanHost = info.lan_url.replace(/^https?:\/\//, '').split(':')[0];
+    if (location.hostname === lanHost) return;
+    $('phoneUrl').textContent = info.lan_url;
+    $('phoneUrl').href = info.lan_url;
+    if (info.qr_svg) {
+      $('qrBox').innerHTML = info.qr_svg;
+    } else {
+      $('qrBox').style.display = 'none';
+      $('phoneSub').textContent = 'Type this address in Safari. (Tip: `pip install qrcode` for a scannable code.)';
+    }
+    $('phoneCard').style.display = 'block';
+  } catch (e) { /* no-op: the card is just a convenience */ }
+}
+loadPhoneInfo();
 
 $('form').addEventListener('submit', async (e) => {
   e.preventDefault();
