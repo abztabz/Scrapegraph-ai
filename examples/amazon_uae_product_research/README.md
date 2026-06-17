@@ -168,6 +168,29 @@ default; override with `HOST` / `PORT` env vars.
 > internet. For sharing, put it behind a reverse proxy with auth, or use the
 > hosted ScrapeGraphAI API.
 
+### 📦 Single-file edition (for phone editors: Koder / a-Shell / Pyto)
+
+[`amazon_uae_finder_single_file.py`](amazon_uae_finder_single_file.py) is the
+**entire web app in one file** (HTML embedded), so you can drop it into a phone
+code editor or shell and just run it:
+
+```bash
+python amazon_uae_finder_single_file.py
+```
+
+It auto-detects its mode:
+
+- **Real mode** — on a computer with `scrapegraphai` installed (and
+  `OPENAI_APIKEY` set), it really scrapes Amazon UAE.
+- **Demo mode** — if `scrapegraphai` isn't available (e.g. on iOS, where
+  Playwright/Chromium can't run), it serves the same mobile UI with realistic
+  **sample data** using only the Python standard library — no keys, no network.
+  A yellow banner makes the demo state obvious.
+
+> The live scraper can't run on iOS itself (it needs headless Chromium + heavy
+> ML libs). Use the single file for a standalone demo on the phone, and run the
+> full tool on a computer — then open it from your phone over Wi-Fi (scan the QR).
+
 ## CLI options
 
 | Flag | Default | Description |
