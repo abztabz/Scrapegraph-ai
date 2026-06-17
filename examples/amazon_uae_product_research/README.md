@@ -191,6 +191,20 @@ It auto-detects its mode:
 > ML libs). Use the single file for a standalone demo on the phone, and run the
 > full tool on a computer — then open it from your phone over Wi-Fi (scan the QR).
 
+### 📲 Open-in-an-editor edition (`amazon_uae_finder_koder.html`)
+
+[`amazon_uae_finder_koder.html`](amazon_uae_finder_koder.html) is a **single
+HTML file that runs entirely in the browser** — no Python, no server, no API
+key. Open it in a phone code editor (e.g. the **Koder** iOS app) or just in
+Safari and it works immediately: type keywords, watch the progress bar, get
+ranked product cards.
+
+The scoring engine and sample data are ported to JavaScript (and verified to
+match the Python tool's scores exactly), so it's a faithful, fully-interactive
+**demo** you can carry on your phone. Because a phone browser can't scrape
+Amazon directly (CORS), it uses built-in sample data — run the Python version
+on a computer for live results.
+
 ## CLI options
 
 | Flag | Default | Description |

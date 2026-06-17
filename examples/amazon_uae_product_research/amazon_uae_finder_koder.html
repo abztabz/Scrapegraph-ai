@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#0b1020" />
+<title>Amazon UAE Product Finder</title>
+<!--
+  SINGLE-FILE, OPEN-ON-YOUR-PHONE edition (for the Koder app / Safari).
+  Everything runs in the browser — no server, no Python, no API key.
+  It uses built-in DEMO data because a phone browser can't scrape Amazon
+  directly (CORS). For real live results, run the Python version on a
+  computer (see amazon_uae_product_finder.py / web/app.py).
+-->
+<style>
+  :root {
+    --bg: #0b1020; --card: #161c30; --card2: #1d2540; --text: #eef2ff;
+    --muted: #9aa6c7; --accent: #ff9900; --accent2: #34d399; --bad: #f87171;
+    --mid: #fbbf24; --line: #2a3252; --radius: 16px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 24px);
+    -webkit-text-size-adjust: 100%;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: linear-gradient(180deg, #0b1020 70%, rgba(11,16,32,0));
+    padding: 18px 18px 12px;
+  }
+  header h1 { margin: 0; font-size: 20px; letter-spacing: .2px; }
+  header h1 span { color: var(--accent); }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  main { padding: 0 16px; max-width: 720px; margin: 0 auto; }
+  .card { background: var(--card); border: 1px solid var(--line);
+          border-radius: var(--radius); padding: 16px; margin: 14px 0; }
+  .banner { border-color: var(--mid); background: rgba(251,191,36,.08); }
+  .banner b { color: var(--mid); }
+  .banner div { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 6px; }
+  textarea, input[type=number], select {
+    width: 100%; background: var(--card2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+    font-size: 16px; outline: none;
+  }
+  textarea { resize: vertical; min-height: 74px; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .toggle { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+  .toggle span { font-size: 14px; }
+  .switch { position: relative; width: 52px; height: 30px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: var(--card2);
+            border: 1px solid var(--line); border-radius: 30px; transition: .2s; }
+  .slider::before { content: ""; position: absolute; height: 22px; width: 22px;
+            left: 3px; top: 3px; background: var(--muted); border-radius: 50%; transition: .2s; }
+  .switch input:checked + .slider { background: rgba(52,211,153,.25); border-color: var(--accent2); }
+  .switch input:checked + .slider::before { transform: translateX(22px); background: var(--accent2); }
+  button.go {
+    width: 100%; margin-top: 18px; padding: 15px; font-size: 17px; font-weight: 700;
+    color: #1a1200; background: var(--accent); border: none; border-radius: 14px;
+    cursor: pointer; transition: transform .05s, opacity .2s;
+  }
+  button.go:active { transform: scale(.985); }
+  button.go:disabled { opacity: .5; }
+  .status { display: none; align-items: center; gap: 12px; }
+  .status.show { display: flex; }
+  .spinner { width: 22px; height: 22px; border: 3px solid var(--line);
+             border-top-color: var(--accent); border-radius: 50%;
+             animation: spin .8s linear infinite; flex: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status .msg { font-size: 14px; color: var(--muted); word-break: break-word; }
+  .progress-bar { height: 6px; background: var(--card2); border-radius: 6px;
+                  overflow: hidden; margin-top: 10px; }
+  .progress-bar > i { display: block; height: 100%; width: 0;
+                  background: var(--accent2); transition: width .4s; }
+  .result {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px; margin: 12px 0;
+    position: relative; overflow: hidden;
+  }
+  .result .rank { position: absolute; top: 0; left: 0; background: var(--card2);
+    color: var(--muted); font-size: 12px; font-weight: 700; padding: 4px 10px;
+    border-bottom-right-radius: 12px; }
+  .result h3 { margin: 22px 0 4px; font-size: 16px; line-height: 1.3; padding-right: 64px; }
+  .result .kw { color: var(--muted); font-size: 12px; }
+  .score-badge { position: absolute; top: 12px; right: 12px; text-align: center; width: 54px; }
+  .score-badge .num { font-size: 22px; font-weight: 800; line-height: 1; }
+  .score-badge .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+  .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
+  .metric { background: var(--card2); border-radius: 10px; padding: 8px 10px; }
+  .metric .m-lbl { font-size: 11px; color: var(--muted); }
+  .metric .m-val { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .bars { margin-top: 12px; display: grid; gap: 6px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+  .bar-row .b-lbl { width: 78px; flex: none; }
+  .bar-track { flex: 1; height: 7px; background: var(--card2); border-radius: 7px; overflow: hidden; }
+  .bar-track > i { display: block; height: 100%; border-radius: 7px; }
+  .bar-row .b-num { width: 30px; text-align: right; color: var(--text); }
+  .china { margin-top: 12px; font-size: 13px; color: var(--accent2);
+           background: rgba(52,211,153,.08); border: 1px solid rgba(52,211,153,.25);
+           border-radius: 10px; padding: 8px 10px; }
+  .links { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .links a { font-size: 13px; color: var(--accent); text-decoration: none;
+             border: 1px solid var(--line); padding: 7px 12px; border-radius: 10px; }
+  .notes { margin-top: 8px; font-size: 11px; color: var(--muted); font-style: italic; }
+  .empty { color: var(--muted); text-align: center; padding: 30px 10px; }
+  .error { color: var(--bad); }
+  footer { text-align: center; color: var(--muted); font-size: 11px; margin-top: 18px; padding: 0 16px; }
+  footer code { color: var(--text); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛒 Amazon <span>UAE</span> Product Finder</h1>
+  <p>Find products worth selling: demand, competition, reviews, BSR &amp; China sourcing.</p>
+</header>
+
+<main>
+  <div class="card banner">
+    <b>⚠️ Demo mode</b>
+    <div>This phone-friendly file shows realistic <b>sample</b> data so you can try the app
+    offline. A phone browser can't scrape Amazon directly, so run the Python version on a
+    computer for live results.</div>
+  </div>
+
+  <form id="form" class="card">
+    <label for="keywords">Keywords / niches (comma or new line)</label>
+    <textarea id="keywords" placeholder="yoga mat, resistance bands, car phone holder"></textarea>
+    <div class="row">
+      <div>
+        <label for="max">Products / keyword</label>
+        <input type="number" id="max" min="1" max="20" value="5" />
+      </div>
+      <div>
+        <label for="model">Model</label>
+        <select id="model">
+          <option value="openai/gpt-4o-mini">openai/gpt-4o-mini</option>
+          <option value="openai/gpt-4o">openai/gpt-4o</option>
+          <option value="ollama/llama3.2">ollama/llama3.2 (local)</option>
+        </select>
+      </div>
+    </div>
+    <div class="toggle">
+      <span>🏭 Find China supplier &amp; estimate margin</span>
+      <label class="switch"><input type="checkbox" id="china" /><span class="slider"></span></label>
+    </div>
+    <button class="go" id="go" type="submit">Find products</button>
+    <div class="status" id="status" style="margin-top:16px">
+      <div class="spinner"></div>
+      <div class="msg" id="statusMsg">Working…</div>
+    </div>
+    <div class="progress-bar" id="progressWrap" style="display:none"><i id="progressBar"></i></div>
+  </form>
+
+  <div id="results"></div>
+  <footer>
+    Estimates for research only — validate before sourcing. Respect Amazon's Terms of Service.<br>
+    For live data, run <code>python amazon_uae_finder_single_file.py</code> on a computer.
+  </footer>
+</main>
+
+<script>
+/* ====================================================================
+   In-browser engine: scoring + demo data (ports the Python tool's model)
+   ==================================================================== */
+const AED_PER_USD = 3.6725;
+const clamp = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
+
+function demandScore(sales, bsr) {
+  let s = 0, has = false;
+  if (sales != null) { has = true; s = Math.max(s, clamp(13.5 * Math.pow(Math.max(sales, 0), 0.27))); }
+  if (bsr) { has = true; s = Math.max(s, clamp(100 - 13 * Math.log10(bsr))); }
+  return has ? clamp(s) : 25;
+}
+function competitionScore(reviews, sellers) {
+  let s = 100, has = false;
+  if (reviews != null) { has = true; s = Math.min(s, clamp(100 - 26 * Math.log10(Math.max(reviews, 0) + 1))); }
+  if (sellers) { has = true; s = Math.min(s, clamp(100 - 5 * (sellers - 1))); }
+  return has ? clamp(s) : 50;
+}
+function marginScore(priceAed, chinaUsd) {
+  if (!priceAed || !chinaUsd) return [0, null];
+  const pu = priceAed / AED_PER_USD;
+  if (pu <= 0) return [0, null];
+  const m = (pu - chinaUsd) / pu;
+  return [clamp(m * 140), Math.round(m * 1000) / 10];
+}
+const r1 = (x) => Math.round(x * 10) / 10;
+function scoreRecord(r, hasChina) {
+  r.demand_score = r1(demandScore(r.bought_last_month, r.bsr_rank));
+  r.competition_score = r1(competitionScore(r.reviews_count, r.seller_count));
+  const [ms, mp] = marginScore(r.price, r.china_unit_price_usd);
+  r.margin_score = r1(ms);
+  r.estimated_margin_pct = mp;
+  const b = hasChina
+    ? 0.45 * r.demand_score + 0.35 * r.competition_score + 0.20 * r.margin_score
+    : (0.45 / 0.80) * r.demand_score + (0.35 / 0.80) * r.competition_score;
+  r.opportunity_score = r1(clamp(b));
+  return r;
+}
+
+/* Seeded RNG so a keyword gives stable, reproducible demo numbers. */
+function strHash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const BRANDS = ["AuraFit", "NovaHome", "PeakGear", "UrbanEdge", "ZenLiving", "FlexPro", "—"];
+const CATS = ["Sports", "Home & Kitchen", "Electronics", "Health", "Office", "Automotive"];
+const SUFFIX = ["Pro", "Max", "Lite", "Plus", "Classic"];
+const SALES_TIERS = [800, 500, 300, 150, 70, 40];
+const REVIEW_TIERS = [30, 80, 220, 900, 4000, 18000];
+const BSR_TIERS = [600, 1500, 4000, 12000, 45000, 120000];
+const pick = (rng, arr) => arr[Math.floor(rng() * arr.length)];
+const rint = (rng, lo, hi) => lo + Math.floor(rng() * (hi - lo + 1));
+
+function demoProducts(keyword, n, sourceChina) {
+  const rng = mulberry32(strHash(keyword));
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const tilt = i / Math.max(n - 1, 1); // later items skew more saturated
+    const sales = Math.floor(pick(rng, SALES_TIERS) * (1 - 0.5 * tilt)) + rint(rng, 0, 40);
+    const reviews = Math.floor(pick(rng, REVIEW_TIERS) * (0.4 + 1.6 * tilt)) + rint(rng, 0, 30);
+    const bsr = Math.floor(pick(rng, BSR_TIERS) * (0.5 + 1.5 * tilt)) + 1;
+    const sellers = rint(rng, 1, 3) + Math.round(tilt * rint(rng, 2, 18));
+    const price = Math.round((45 + rng() * 175) * 100) / 100;
+    const rating = Math.round((3.8 + rng() * 1.0) * 10) / 10;
+    const rec = {
+      keyword,
+      title: `${keyword.trim().replace(/\b\w/g, c => c.toUpperCase())} — ${pick(rng, SUFFIX)} ${String.fromCharCode(65 + i)}`,
+      brand: pick(rng, BRANDS),
+      url: "https://www.amazon.ae/s?k=" + encodeURIComponent(keyword),
+      price, currency: "AED", rating,
+      reviews_count: reviews, bought_last_month: sales,
+      bsr_rank: bsr, bsr_category: pick(rng, CATS), seller_count: sellers,
+      china_unit_price_usd: null, china_platform: null, china_url: null,
+      estimated_margin_pct: null,
+      notes: ["DEMO data — run the Python tool for real Amazon results"],
+    };
+    if (sourceChina) {
+      rec.china_unit_price_usd = Math.round((price / AED_PER_USD) * (0.12 + rng() * 0.28) * 100) / 100;
+      rec.china_platform = pick(rng, ["Alibaba", "1688", "DHgate"]);
+      rec.china_url = "https://www.alibaba.com/";
+    }
+    out.push(rec);
+  }
+  return out;
+}
+
+/* ====================================================================
+   UI
+   ==================================================================== */
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+let running = false;
+
+function scoreColor(s) { if (s >= 70) return 'var(--accent2)'; if (s >= 45) return 'var(--mid)'; return 'var(--bad)'; }
+function fmt(n) { return (n === null || n === undefined) ? '—' : n; }
+function fmtInt(n) { return (n === null || n === undefined) ? '—' : Number(n).toLocaleString(); }
+function bar(label, val) {
+  const v = Math.max(0, Math.min(100, val || 0));
+  return `<div class="bar-row"><span class="b-lbl">${label}</span>
+    <span class="bar-track"><i style="width:${v}%;background:${scoreColor(v)}"></i></span>
+    <span class="b-num">${Math.round(v)}</span></div>`;
+}
+function resultCard(r, i) {
+  const sc = r.opportunity_score || 0;
+  const bsr = r.bsr_rank ? ('#' + Number(r.bsr_rank).toLocaleString() + (r.bsr_category ? ' · ' + r.bsr_category : '')) : '—';
+  const price = (r.price !== null && r.price !== undefined) ? (r.price + ' ' + (r.currency || 'AED')) : '—';
+  let china = '';
+  if (r.china_unit_price_usd !== null && r.china_unit_price_usd !== undefined) {
+    china = `<div class="china">🏭 China: $${r.china_unit_price_usd} ${r.china_platform ? 'via ' + r.china_platform : ''}` +
+            (r.estimated_margin_pct !== null && r.estimated_margin_pct !== undefined ? ` · est. margin ${r.estimated_margin_pct}%` : '') + `</div>`;
+  }
+  const links = [];
+  if (r.url) links.push(`<a href="${r.url}" target="_blank" rel="noopener">View on Amazon</a>`);
+  if (r.china_url) links.push(`<a href="${r.china_url}" target="_blank" rel="noopener">Supplier</a>`);
+  const notes = (r.notes && r.notes.length) ? `<div class="notes">⚠️ ${r.notes.join('; ')}</div>` : '';
+  return `<div class="result">
+    <div class="rank">#${i + 1}</div>
+    <div class="score-badge"><div class="num" style="color:${scoreColor(sc)}">${sc}</div><div class="lbl">score</div></div>
+    <h3>${r.title || 'Untitled'}</h3>
+    <div class="kw">🔎 ${r.keyword}${r.brand && r.brand !== '—' ? ' · ' + r.brand : ''}</div>
+    <div class="metrics">
+      <div class="metric"><div class="m-lbl">Price</div><div class="m-val">${price}</div></div>
+      <div class="metric"><div class="m-lbl">Monthly sales</div><div class="m-val">${fmtInt(r.bought_last_month)}</div></div>
+      <div class="metric"><div class="m-lbl">Reviews</div><div class="m-val">${fmtInt(r.reviews_count)}</div></div>
+      <div class="metric"><div class="m-lbl">Rating</div><div class="m-val">${fmt(r.rating)}${r.rating ? '★' : ''}</div></div>
+      <div class="metric"><div class="m-lbl">BSR</div><div class="m-val" style="font-size:13px">${bsr}</div></div>
+      <div class="metric"><div class="m-lbl">Competitors</div><div class="m-val">${fmtInt(r.seller_count)}</div></div>
+    </div>
+    <div class="bars">${bar('Demand', r.demand_score)}${bar('Low compet.', r.competition_score)}${bar('Margin', r.margin_score)}</div>
+    ${china}
+    ${links.length ? `<div class="links">${links.join('')}</div>` : ''}
+    ${notes}
+  </div>`;
+}
+function render(results) {
+  const wrap = $('results');
+  if (!results.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = results.map(resultCard).join('');
+}
+function setBusy(busy, msg) {
+  $('go').disabled = busy;
+  $('status').classList.toggle('show', busy);
+  $('progressWrap').style.display = busy ? 'block' : 'none';
+  if (msg) $('statusMsg').textContent = msg;
+}
+
+async function runSearch(keywords, maxProducts, sourceChina) {
+  // Build the full candidate list, then reveal one-by-one with a progress bar,
+  // mirroring how the server streams ranked results to the page.
+  const all = [];
+  keywords.forEach(k => demoProducts(k, maxProducts, sourceChina).forEach(p => all.push(p)));
+  const total = all.length;
+  const results = [];
+  for (let i = 0; i < total; i++) {
+    if (!running) return;
+    await sleep(300);
+    scoreRecord(all[i], sourceChina);
+    results.push(all[i]);
+    results.sort((a, b) => b.opportunity_score - a.opportunity_score);
+    const pct = Math.round(((i + 1) / total) * 100);
+    $('progressBar').style.width = pct + '%';
+    $('statusMsg').textContent = `(${i + 1}/${total}) Evaluating products… (demo)`;
+    render(results);
+  }
+  $('statusMsg').textContent = `Done (demo) — ${results.length} products ranked.`;
+}
+
+$('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (running) return;
+  const raw = $('keywords').value.trim();
+  if (!raw) { $('keywords').focus(); return; }
+  const keywords = raw.replace(/\n/g, ',').split(',').map(s => s.trim()).filter(Boolean);
+  const maxProducts = Math.max(1, Math.min(parseInt($('max').value || '5', 10), 20));
+  const sourceChina = $('china').checked;
+  running = true;
+  $('results').innerHTML = '';
+  $('progressBar').style.width = '0%';
+  setBusy(true, 'Queued…');
+  try {
+    await runSearch(keywords, maxProducts, sourceChina);
+  } catch (err) {
+    $('results').innerHTML = `<div class="card empty error">⚠️ ${err.message}</div>`;
+  } finally {
+    running = false;
+    setBusy(false);
+  }
+});
+</script>
+</body>
+</html>
