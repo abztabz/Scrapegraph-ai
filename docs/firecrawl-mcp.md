@@ -26,7 +26,7 @@ is never committed to the repository.
      "mcpServers": {
        "firecrawl": {
          "command": "npx",
-         "args": ["-y", "@firecrawl/mcp"],
+         "args": ["-y", "firecrawl-mcp"],
          "env": {
            "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
          }
