@@ -7,9 +7,9 @@ clients (e.g. Claude Code).
 
 ## Setup
 
-The server is configured as a remote (HTTP) MCP endpoint and authenticates
-with your Firecrawl API key. The key is read from the `FIRECRAWL_API_KEY`
-environment variable so it is never committed to the repository.
+The server runs locally via `npx` and authenticates with your Firecrawl API
+key. The key is read from the `FIRECRAWL_API_KEY` environment variable so it
+is never committed to the repository.
 
 1. Get an API key from the [Firecrawl dashboard](https://www.firecrawl.dev/app/api-keys).
 2. Export it in your environment:
@@ -25,10 +25,10 @@ environment variable so it is never committed to the repository.
    {
      "mcpServers": {
        "firecrawl": {
-         "type": "http",
-         "url": "https://mcp.firecrawl.dev/v2/mcp",
-         "headers": {
-           "Authorization": "Bearer ${FIRECRAWL_API_KEY}"
+         "command": "npx",
+         "args": ["-y", "@firecrawl/mcp"],
+         "env": {
+           "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
          }
        }
      }

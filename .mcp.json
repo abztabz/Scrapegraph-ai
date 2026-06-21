@@ -1,10 +1,10 @@
 {
   "mcpServers": {
     "firecrawl": {
-      "type": "http",
-      "url": "https://mcp.firecrawl.dev/v2/mcp",
-      "headers": {
-        "Authorization": "Bearer ${FIRECRAWL_API_KEY}"
+      "command": "npx",
+      "args": ["-y", "@firecrawl/mcp"],
+      "env": {
+        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
       }
     }
   }
