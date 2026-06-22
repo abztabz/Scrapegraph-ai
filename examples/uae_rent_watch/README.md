@@ -120,7 +120,11 @@ The web app saves your watchlist and remembers the latest rents for you.
 ## 3b. Run it from the command line
 
 ```bash
-# free local model
+# Try it instantly with built-in sample data — no network, no API key.
+# Run it twice to see real rent changes get flagged the second time.
+python uae_rent_watch.py --demo
+
+# free local model (real data)
 python uae_rent_watch.py --watchlist my_watchlist.json --model ollama/llama3.2
 
 # free-tier Gemini, and email me the result
@@ -174,6 +178,7 @@ Leave `--email` off if you just want it printed to the screen and saved to a fil
 | `--portal` | `bayut` | Default source portal (`bayut`, `propertyfinder` or `dubizzle`) for areas that don't set their own. |
 | `--model` | `ollama/llama3.2` | LLM to use (free local, or `google_genai/gemini-1.5-flash`, etc.). |
 | `--api-key` | env | API key for paid/cloud models (else read from env). |
+| `--demo` | off | Use built-in sample data (no network/API key) so you can try it. |
 | `--threshold` | `3.0` | Only flag rent moves at least this big (%). |
 | `--email` | off | Also email the report (needs the `SMTP_*` vars above). |
 | `--state-file` | `rent_state.json` | Where it remembers previous rents. |

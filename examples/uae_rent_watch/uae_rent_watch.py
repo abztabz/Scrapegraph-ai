@@ -45,8 +45,10 @@ See README.md for the full, no-coding-required setup.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import random
 import smtplib
 import sys
 from dataclasses import asdict, dataclass, field
@@ -416,6 +418,90 @@ class RentWatcher:
 
 
 # ----------------------------------------------------------------------------
+# Demo mode — run the whole pipeline on sample data (no network, no API key)
+# ----------------------------------------------------------------------------
+
+# Indicative yearly asking rents (AED) for a few popular communities, so `--demo`
+# shows believable numbers out of the box. Anything not listed is estimated from
+# its city. These are illustrative samples, not live figures.
+SAMPLE_BASE_RENTS = {
+    "dubai marina": 115000,
+    "downtown dubai": 145000,
+    "jumeirah village circle": 75000,
+    "business bay": 105000,
+    "jumeirah lake towers": 95000,
+    "al reem island": 80000,
+    "al nahda": 42000,
+}
+CITY_BASELINE = {
+    "dubai": 95000,
+    "abu dhabi": 80000,
+    "sharjah": 45000,
+    "ajman": 32000,
+    "ras al khaimah": 42000,
+    "fujairah": 36000,
+    "umm al quwain": 30000,
+}
+BEDROOM_FACTOR = {"studio": 0.55, "0": 0.55, "1": 1.0, "2": 1.45, "3": 1.95, "4": 2.6}
+
+
+def _round_k(value: float) -> float:
+    """Round to the nearest 1,000 AED, the way listings are usually quoted."""
+    return float(round(value / 1000.0) * 1000)
+
+
+def sample_base_rent(item: WatchItem) -> float:
+    """A plausible yearly rent for a watch item, used only by --demo."""
+    base = SAMPLE_BASE_RENTS.get(item.area.strip().lower())
+    if base is None:
+        city_base = CITY_BASELINE.get(item.city.strip().lower(), 70000)
+        # Stable per-area nudge so different areas get different numbers.
+        h = int(hashlib.md5(item.area.lower().encode()).hexdigest()[:6], 16)
+        base = city_base * (0.85 + (h % 30) / 100.0)
+        base *= BEDROOM_FACTOR.get((item.bedrooms or "1").strip().lower(), 1.0)
+    return _round_k(base)
+
+
+class DemoRentWatcher(RentWatcher):
+    """Drop-in RentWatcher that fabricates sample readings instead of scraping.
+
+    The first run establishes a baseline; later runs random-walk from the last
+    stored value, so you can run it twice and watch real changes get flagged —
+    all without a network connection or an LLM key.
+    """
+
+    def scrape_area(self, item: WatchItem) -> RentSnapshot:
+        prev = self.load_state().get(item.key())
+        if prev and prev.get("median_rent"):
+            median = _round_k(prev["median_rent"] * (1 + random.uniform(-0.06, 0.08)))
+        else:
+            median = sample_base_rent(item)
+        snapshot = RentSnapshot(
+            key=item.key(),
+            label=item.label(),
+            area=item.area,
+            city=item.city,
+            property_type=item.property_type,
+            bedrooms=item.bedrooms,
+            portal=item.portal,
+            url=item.search_url(),
+            average_rent=_round_k(median * 1.03),
+            median_rent=median,
+            min_rent=_round_k(median * 0.80),
+            max_rent=_round_k(median * 1.35),
+            listings_count=random.randint(18, 120),
+            currency=DEFAULT_CURRENCY,
+            period="yearly",
+            checked_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        )
+        self._log(
+            f"\n🏠 [demo] {item.label()}\n     read {_fmt_money(median, 'AED')}/yearly "
+            f"from {snapshot.listings_count} listings"
+        )
+        return snapshot
+
+
+# ----------------------------------------------------------------------------
 # Helpers
 # ----------------------------------------------------------------------------
 
@@ -719,6 +805,11 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     )
     parser.add_argument("--api-key", help="LLM API key (else read from env).")
     parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="Try it with built-in sample data — no network or API key needed.",
+    )
+    parser.add_argument(
         "--email",
         action="store_true",
         help="Also email the report (configure SMTP_* env vars; see README).",
@@ -750,13 +841,22 @@ def main(argv: Optional[List[str]] = None) -> int:
             f"No areas found in {args.watchlist}. Add at least one area and retry."
         )
 
-    graph_config = build_graph_config(args)
-    watcher = RentWatcher(
-        graph_config=graph_config,
-        state_file=args.state_file,
-        threshold_pct=args.threshold,
-        verbose=args.verbose,
-    )
+    if args.demo:
+        print("🧪 Demo mode: using built-in sample data (no network / API key).")
+        watcher: RentWatcher = DemoRentWatcher(
+            graph_config={},
+            state_file=args.state_file,
+            threshold_pct=args.threshold,
+            verbose=args.verbose,
+        )
+    else:
+        graph_config = build_graph_config(args)
+        watcher = RentWatcher(
+            graph_config=graph_config,
+            state_file=args.state_file,
+            threshold_pct=args.threshold,
+            verbose=args.verbose,
+        )
 
     changes = watcher.run(watchlist)
     report = build_report(changes, args.threshold)
