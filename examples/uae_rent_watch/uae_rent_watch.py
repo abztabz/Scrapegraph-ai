@@ -73,8 +73,9 @@ except ImportError as exc:  # pragma: no cover - helpful message when run standa
 DEFAULT_CURRENCY = "AED"
 BAYUT_BASE = "https://www.bayut.com"
 PROPERTYFINDER_BASE = "https://www.propertyfinder.ae"
+DUBIZZLE_BASE = "https://uae.dubizzle.com"
 DEFAULT_PORTAL_NAME = "bayut"
-SUPPORTED_PORTALS = ("bayut", "propertyfinder")
+SUPPORTED_PORTALS = ("bayut", "propertyfinder", "dubizzle")
 DEFAULT_STATE_FILE = "rent_state.json"
 # Only shout about changes bigger than this (percent), to cut through the noise.
 DEFAULT_THRESHOLD_PCT = 3.0
@@ -464,6 +465,7 @@ def portal_display_name(portal: Optional[str]) -> str:
     return {
         "bayut": "Bayut",
         "propertyfinder": "Property Finder",
+        "dubizzle": "Dubizzle",
     }.get((portal or DEFAULT_PORTAL_NAME).strip().lower(), portal or DEFAULT_PORTAL_NAME)
 
 
@@ -505,9 +507,33 @@ def _propertyfinder_search_url(item: "WatchItem") -> str:
     return url
 
 
+def _dubizzle_property_segment(property_type: str) -> str:
+    mapping = {
+        "apartment": "apartments",
+        "flat": "apartments",
+        "studio": "apartments",
+        "villa": "villas",
+        "townhouse": "townhouses",
+    }
+    return mapping.get((property_type or "").strip().lower(), "residential")
+
+
+def _dubizzle_search_url(item: "WatchItem") -> str:
+    # Dubizzle (uae.dubizzle.com) groups rentals under /property-for-rent/. The
+    # free-text `keywords` param handles the location; bedrooms go in `bedrooms`.
+    query = f"{item.area} {item.city}".strip()
+    path = f"/property-for-rent/residential/{_dubizzle_property_segment(item.property_type)}/"
+    url = f"{DUBIZZLE_BASE}{path}?keywords={quote_plus(query)}"
+    beds = _beds_param(item.bedrooms)
+    if beds and beds != "0":
+        url += f"&bedrooms={beds}"
+    return url
+
+
 PORTAL_BUILDERS = {
     "bayut": _bayut_search_url,
     "propertyfinder": _propertyfinder_search_url,
+    "dubizzle": _dubizzle_search_url,
 }
 
 

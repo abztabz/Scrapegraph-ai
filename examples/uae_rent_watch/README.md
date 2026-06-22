@@ -88,10 +88,11 @@ cp watchlist.example.json my_watchlist.json
 Only `area` is required. `city` defaults to *Dubai*. `property_type` can be
 `apartment`, `studio`, `villa` or `townhouse`. `bedrooms` is optional.
 
-`portal` chooses where the rent is read from — **`bayut`** (default) or
-**`propertyfinder`**, the two biggest UAE listing sites. Watch the *same* area on
-both to compare them side by side (each is tracked separately). You can also paste
-a portal `url` if you want to control the exact page that's read.
+`portal` chooses where the rent is read from — **`bayut`** (default),
+**`propertyfinder`** or **`dubizzle`**, the biggest UAE listing sites. Watch the
+*same* area on more than one to compare them side by side (each is tracked
+separately). You can also paste a portal `url` if you want to control the exact
+page that's read.
 
 ---
 
@@ -170,7 +171,7 @@ Leave `--email` off if you just want it printed to the screen and saved to a fil
 | Flag | Default | Description |
 | ---- | ------- | ----------- |
 | `--watchlist` | `watchlist.example.json` | Your list of areas (JSON). |
-| `--portal` | `bayut` | Default source portal (`bayut` or `propertyfinder`) for areas that don't set their own. |
+| `--portal` | `bayut` | Default source portal (`bayut`, `propertyfinder` or `dubizzle`) for areas that don't set their own. |
 | `--model` | `ollama/llama3.2` | LLM to use (free local, or `google_genai/gemini-1.5-flash`, etc.). |
 | `--api-key` | env | API key for paid/cloud models (else read from env). |
 | `--threshold` | `3.0` | Only flag rent moves at least this big (%). |
