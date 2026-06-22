@@ -19,6 +19,7 @@ This directory contains various example implementations of Scrapegraph-ai for di
 - 🛠️ `custom_graph/` - Custom graph implementation examples
 - 💻 `code_generator_graph/` - Code generation utilities
 - 📋 `json_scraper_graph/` - JSON data extraction and processing
+- 🏠 `uae_rent_watch/` - Watch UAE rents by area and get notified (email + mobile web app) when they change
 - 📋 `colab example`:
 <a target="_blank" href="https://colab.research.google.com/drive/1sEZBonBMGP44CtO6GQTwAlL0BGJXjtfd?usp=sharing#scrollTo=vGDjka17pqqg">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
