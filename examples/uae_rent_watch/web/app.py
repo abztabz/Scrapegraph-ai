@@ -45,7 +45,12 @@ TOOL_DIR = THIS_DIR.parent
 sys.path.insert(0, str(TOOL_DIR))
 
 try:
-    from uae_rent_watch import RentWatcher, WatchItem, resolve_api_key  # noqa: E402
+    from uae_rent_watch import (  # noqa: E402
+        RentWatcher,
+        WatchItem,
+        normalize_portal,
+        resolve_api_key,
+    )
 except ImportError as exc:  # pragma: no cover
     raise SystemExit(
         "Could not import uae_rent_watch. Run this from the "
@@ -96,6 +101,7 @@ def write_watchlist(items: List[dict]) -> None:
                 "property_type": str(entry.get("property_type", "apartment")).strip()
                 or "apartment",
                 "bedrooms": (str(entry["bedrooms"]).strip() if entry.get("bedrooms") else None),
+                "portal": normalize_portal(entry.get("portal")),
                 "url": (str(entry["url"]).strip() if entry.get("url") else None),
             }
         )
@@ -124,6 +130,7 @@ def watch_items_from(raw: List[dict]) -> List[WatchItem]:
                 property_type=str(entry.get("property_type", "apartment")).strip()
                 or "apartment",
                 bedrooms=(str(entry["bedrooms"]).strip() if entry.get("bedrooms") else None),
+                portal=normalize_portal(entry.get("portal")),
                 url=(str(entry["url"]).strip() if entry.get("url") else None),
             )
         )

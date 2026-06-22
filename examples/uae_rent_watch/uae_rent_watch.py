@@ -71,7 +71,10 @@ except ImportError as exc:  # pragma: no cover - helpful message when run standa
 # ----------------------------------------------------------------------------
 
 DEFAULT_CURRENCY = "AED"
-DEFAULT_PORTAL = "https://www.bayut.com"
+BAYUT_BASE = "https://www.bayut.com"
+PROPERTYFINDER_BASE = "https://www.propertyfinder.ae"
+DEFAULT_PORTAL_NAME = "bayut"
+SUPPORTED_PORTALS = ("bayut", "propertyfinder")
 DEFAULT_STATE_FILE = "rent_state.json"
 # Only shout about changes bigger than this (percent), to cut through the noise.
 DEFAULT_THRESHOLD_PCT = 3.0
@@ -90,7 +93,9 @@ class WatchItem:
     city: str = "Dubai"
     property_type: str = "apartment"  # apartment | villa | townhouse | studio ...
     bedrooms: Optional[str] = None  # e.g. "1", "2", "studio"; None = any
-    # Optional explicit URL. If omitted we build a Bayut to-rent search URL.
+    # Which property portal to read: "bayut" or "propertyfinder".
+    portal: str = DEFAULT_PORTAL_NAME
+    # Optional explicit URL. If set it wins over the portal builder.
     url: Optional[str] = None
 
     def label(self) -> str:
@@ -101,12 +106,13 @@ class WatchItem:
         if self.property_type:
             extra.append(self.property_type)
         suffix = f" ({', '.join(extra)})" if extra else ""
-        return f"{' — '.join(bits)}{suffix}"
+        return f"{' — '.join(bits)}{suffix} · {portal_display_name(self.portal)}"
 
     def key(self) -> str:
         """Stable identity used to match this item across runs in the state file."""
         return "|".join(
             [
+                (self.portal or DEFAULT_PORTAL_NAME).strip().lower(),
                 self.city.strip().lower(),
                 self.area.strip().lower(),
                 (self.property_type or "any").strip().lower(),
@@ -117,14 +123,10 @@ class WatchItem:
     def search_url(self) -> str:
         if self.url:
             return self.url
-        # Best-effort Bayut "to-rent" search URL. Bayut uses slugged area paths,
-        # but its keyword search also works and is more forgiving of spelling.
-        query = f"{self.area} {self.city}".strip()
-        path = f"/to-rent/{_portal_property_segment(self.property_type)}/{_slug(self.city)}/"
-        url = f"{DEFAULT_PORTAL}{path}?query={quote_plus(query)}"
-        if self.bedrooms and self.bedrooms.lower() not in ("any", "studio"):
-            url += f"&beds={quote_plus(self.bedrooms)}"
-        return url
+        builder = PORTAL_BUILDERS.get(
+            (self.portal or DEFAULT_PORTAL_NAME).strip().lower(), _bayut_search_url
+        )
+        return builder(self)
 
 
 class AreaRent(BaseModel):
@@ -173,6 +175,7 @@ class RentSnapshot:
     city: str
     property_type: str
     bedrooms: Optional[str]
+    portal: str
     url: str
     average_rent: Optional[float] = None
     median_rent: Optional[float] = None
@@ -275,6 +278,7 @@ class RentWatcher:
             city=item.city,
             property_type=item.property_type,
             bedrooms=item.bedrooms,
+            portal=item.portal,
             url=url,
             average_rent=rent.average_rent,
             median_rent=rent.median_rent,
@@ -443,7 +447,33 @@ def _slug(text: str) -> str:
     return text.strip().lower().replace(" ", "-")
 
 
-def _portal_property_segment(property_type: str) -> str:
+def _beds_param(bedrooms: Optional[str]) -> Optional[str]:
+    """Normalise a bedroom value to the digit portals expect ('studio' -> 0)."""
+    if not bedrooms:
+        return None
+    value = bedrooms.strip().lower()
+    if value in ("any", ""):
+        return None
+    if value == "studio":
+        return "0"
+    digits = "".join(ch for ch in value if ch.isdigit())
+    return digits or None
+
+
+def portal_display_name(portal: Optional[str]) -> str:
+    return {
+        "bayut": "Bayut",
+        "propertyfinder": "Property Finder",
+    }.get((portal or DEFAULT_PORTAL_NAME).strip().lower(), portal or DEFAULT_PORTAL_NAME)
+
+
+# -- per-portal "to-rent" search URL builders --------------------------------
+# These are best-effort: portals change their URL schemes, and area pages use
+# slugged paths we can't always guess. Keyword search is more forgiving, and a
+# watch item can always set an explicit `url` to override the builder entirely.
+
+
+def _bayut_property_segment(property_type: str) -> str:
     mapping = {
         "apartment": "apartments",
         "flat": "apartments",
@@ -454,12 +484,46 @@ def _portal_property_segment(property_type: str) -> str:
     return mapping.get((property_type or "").strip().lower(), "property")
 
 
+def _bayut_search_url(item: "WatchItem") -> str:
+    query = f"{item.area} {item.city}".strip()
+    path = f"/to-rent/{_bayut_property_segment(item.property_type)}/{_slug(item.city)}/"
+    url = f"{BAYUT_BASE}{path}?query={quote_plus(query)}"
+    beds = _beds_param(item.bedrooms)
+    if beds and beds != "0":
+        url += f"&beds={beds}"
+    return url
+
+
+def _propertyfinder_search_url(item: "WatchItem") -> str:
+    # Property Finder uses c=1 for buy and c=2 for rent. Free-text `q` drives the
+    # location search, which is forgiving of spelling; bedrooms go in `bdr[]`.
+    query = f"{item.area} {item.city}".strip()
+    url = f"{PROPERTYFINDER_BASE}/en/search?c=2&q={quote_plus(query)}"
+    beds = _beds_param(item.bedrooms)
+    if beds is not None:
+        url += f"&bdr[]={beds}"
+    return url
+
+
+PORTAL_BUILDERS = {
+    "bayut": _bayut_search_url,
+    "propertyfinder": _propertyfinder_search_url,
+}
+
+
 # ----------------------------------------------------------------------------
 # Watchlist loading
 # ----------------------------------------------------------------------------
 
 
-def load_watchlist(path: str) -> List[WatchItem]:
+def normalize_portal(value: Optional[str], default: str = DEFAULT_PORTAL_NAME) -> str:
+    portal = (value or default).strip().lower().replace(" ", "")
+    aliases = {"property_finder": "propertyfinder", "pf": "propertyfinder"}
+    portal = aliases.get(portal, portal)
+    return portal if portal in SUPPORTED_PORTALS else default
+
+
+def load_watchlist(path: str, default_portal: str = DEFAULT_PORTAL_NAME) -> List[WatchItem]:
     with open(path, "r", encoding="utf-8") as handle:
         data = json.load(handle)
     raw_items = data.get("watchlist", data) if isinstance(data, dict) else data
@@ -474,6 +538,7 @@ def load_watchlist(path: str) -> List[WatchItem]:
                 property_type=str(entry.get("property_type", "apartment")).strip()
                 or "apartment",
                 bedrooms=(str(entry["bedrooms"]).strip() if entry.get("bedrooms") else None),
+                portal=normalize_portal(entry.get("portal"), default_portal),
                 url=(str(entry["url"]).strip() if entry.get("url") else None),
             )
         )
@@ -616,6 +681,12 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="Only flag changes at least this %% big.",
     )
     parser.add_argument(
+        "--portal",
+        choices=SUPPORTED_PORTALS,
+        default=DEFAULT_PORTAL_NAME,
+        help="Default property portal for areas that don't set their own.",
+    )
+    parser.add_argument(
         "--model",
         default="ollama/llama3.2",
         help="LLM to use, e.g. ollama/llama3.2 (free, local) or openai/gpt-4o-mini.",
@@ -647,7 +718,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             "Copy watchlist.example.json and edit it with the areas you care about."
         )
 
-    watchlist = load_watchlist(args.watchlist)
+    watchlist = load_watchlist(args.watchlist, default_portal=args.portal)
     if not watchlist:
         raise SystemExit(
             f"No areas found in {args.watchlist}. Add at least one area and retry."
