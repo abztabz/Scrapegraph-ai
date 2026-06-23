@@ -1,0 +1,59 @@
+{
+  "updated_at": "2026-06-23T14:04:00+00:00",
+  "areas": {
+    "bayut|dubai|dubai marina|apartment|1": {
+      "key": "bayut|dubai|dubai marina|apartment|1",
+      "label": "Dubai Marina — Dubai (1 bed, apartment) · Bayut",
+      "area": "Dubai Marina",
+      "city": "Dubai",
+      "property_type": "apartment",
+      "bedrooms": "1",
+      "portal": "bayut",
+      "url": "https://www.bayut.com/to-rent/apartments/dubai/?query=Dubai+Marina+Dubai&beds=1",
+      "average_rent": null,
+      "median_rent": null,
+      "min_rent": null,
+      "max_rent": null,
+      "listings_count": null,
+      "currency": "AED",
+      "period": "yearly",
+      "checked_at": "2026-06-23T14:03:57+00:00"
+    },
+    "propertyfinder|dubai|jumeirah village circle|apartment|2": {
+      "key": "propertyfinder|dubai|jumeirah village circle|apartment|2",
+      "label": "Jumeirah Village Circle — Dubai (2 bed, apartment) · Property Finder",
+      "area": "Jumeirah Village Circle",
+      "city": "Dubai",
+      "property_type": "apartment",
+      "bedrooms": "2",
+      "portal": "propertyfinder",
+      "url": "https://www.propertyfinder.ae/en/search?c=2&q=Jumeirah+Village+Circle+Dubai&bdr[]=2",
+      "average_rent": null,
+      "median_rent": null,
+      "min_rent": null,
+      "max_rent": null,
+      "listings_count": null,
+      "currency": "AED",
+      "period": "yearly",
+      "checked_at": "2026-06-23T14:03:58+00:00"
+    },
+    "bayut|abu dhabi|al reem island|apartment|1": {
+      "key": "bayut|abu dhabi|al reem island|apartment|1",
+      "label": "Al Reem Island — Abu Dhabi (1 bed, apartment) · Bayut",
+      "area": "Al Reem Island",
+      "city": "Abu Dhabi",
+      "property_type": "apartment",
+      "bedrooms": "1",
+      "portal": "bayut",
+      "url": "https://www.bayut.com/to-rent/apartments/abu-dhabi/?query=Al+Reem+Island+Abu+Dhabi&beds=1",
+      "average_rent": null,
+      "median_rent": null,
+      "min_rent": null,
+      "max_rent": null,
+      "listings_count": null,
+      "currency": "AED",
+      "period": "yearly",
+      "checked_at": "2026-06-23T14:04:00+00:00"
+    }
+  }
+}
