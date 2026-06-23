@@ -1,0 +1,8 @@
+{
+  "_comment": "EDIT THIS FILE with the areas you want the daily GitHub Action to watch. You can edit it right in the GitHub web editor (pencil icon) — no coding needed. Each entry: 'area' (required), 'city' (default Dubai), 'property_type' (apartment/studio/villa/townhouse), 'bedrooms' (1/2/3 or omit for any), 'portal' (bayut/propertyfinder/dubizzle).",
+  "watchlist": [
+    { "area": "Dubai Marina", "city": "Dubai", "property_type": "apartment", "bedrooms": "1", "portal": "bayut" },
+    { "area": "Jumeirah Village Circle", "city": "Dubai", "property_type": "apartment", "bedrooms": "2", "portal": "propertyfinder" },
+    { "area": "Al Reem Island", "city": "Abu Dhabi", "property_type": "apartment", "bedrooms": "1", "portal": "bayut" }
+  ]
+}

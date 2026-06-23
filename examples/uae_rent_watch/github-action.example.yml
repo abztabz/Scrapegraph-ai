@@ -6,9 +6,9 @@
 # for. It emails you any rent changes and remembers the latest rents between runs.
 #
 # ── HOW TO USE IT (no coding needed) ─────────────────────────────────────────
-# 1. Put your project on GitHub (a free account is fine). Your watchlist file
-#    `my_watchlist.json` should sit next to this example folder, or edit the
-#    `--watchlist` path below.
+# 1. Put your project on GitHub (a free account is fine). Edit the committed
+#    `examples/uae_rent_watch/watchlist.json` with the areas you want to watch
+#    (you can do this right in the GitHub web editor — no coding needed).
 # 2. Copy THIS file to:  .github/workflows/rent-watch.yml
 # 3. In your repo: Settings ▸ Secrets and variables ▸ Actions ▸ "New repository
 #    secret", and add these secrets:
@@ -60,7 +60,7 @@ jobs:
           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
         run: |
           python uae_rent_watch.py \
-            --watchlist my_watchlist.json \
+            --watchlist watchlist.json \
             --model google_genai/gemini-1.5-flash \
             --state-file rent_state.json \
             --email
@@ -69,7 +69,9 @@ jobs:
         run: |
           git config user.name "rent-watch-bot"
           git config user.email "rent-watch-bot@users.noreply.github.com"
-          git add examples/uae_rent_watch/rent_state.json
+          # -f because rent_state.json is git-ignored for local use, but in CI we
+          # do want to commit it so changes are detected across daily runs.
+          git add -f examples/uae_rent_watch/rent_state.json
           git commit -m "chore: update UAE rent state" || echo "no changes"
           git push || echo "nothing to push"
         working-directory: .
