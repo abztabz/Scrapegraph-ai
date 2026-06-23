@@ -12,7 +12,7 @@
 # 2. Copy THIS file to:  .github/workflows/rent-watch.yml
 # 3. In your repo: Settings ▸ Secrets and variables ▸ Actions ▸ "New repository
 #    secret", and add these secrets:
-#       GEMINI_API_KEY  – a free Google AI Studio key (aistudio.google.com)
+#       GROQ_API_KEY    – a free Groq key (console.groq.com; no card, works worldwide)
 #       SMTP_HOST       – smtp.gmail.com
 #       SMTP_PORT       – 587
 #       SMTP_USER       – your Gmail address
@@ -43,16 +43,16 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"          # this repo's code requires Python >= 3.12
 
       - name: Install
         run: |
-          pip install scrapegraphai
+          pip install -e ../.. langchain-groq
           playwright install --with-deps chromium
 
       - name: Check rents and email me
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
@@ -61,7 +61,7 @@ jobs:
         run: |
           python uae_rent_watch.py \
             --watchlist watchlist.json \
-            --model google_genai/gemini-2.0-flash \
+            --model groq/llama-3.3-70b-versatile \
             --state-file rent_state.json \
             --email
 

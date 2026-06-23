@@ -57,13 +57,15 @@ playwright install            # lets it open the property pages
 
 - **Totally free, on your own computer:** install [Ollama](https://ollama.com),
   then `ollama pull llama3.2`. Use `--model ollama/llama3.2` (the default).
-- **Free-tier cloud key (better for the daily auto-check):** get a free key from
-  [Google AI Studio](https://aistudio.google.com/) and use
-  `--model google_genai/gemini-2.0-flash`. Set it once with:
+- **Free-tier cloud key (best for the daily auto-check):** get a free key from
+  [Groq](https://console.groq.com) — no credit card, works worldwide — and use
+  `--model groq/llama-3.3-70b-versatile`. Set it once with:
   ```bash
-  export GEMINI_API_KEY="your-key"
+  export GROQ_API_KEY="your-key"
   ```
-  (`GROQ_API_KEY`, `OPENAI_API_KEY`, etc. are picked up automatically too.)
+  (Google Gemini works too via `--model google_genai/gemini-2.0-flash` +
+  `GEMINI_API_KEY`, but its free tier isn't available in every country.
+  `OPENAI_API_KEY` etc. are picked up automatically as well.)
 
 ---
 
