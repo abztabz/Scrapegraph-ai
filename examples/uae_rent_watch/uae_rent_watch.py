@@ -50,6 +50,7 @@ import json
 import os
 import random
 import smtplib
+import socket
 import sys
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -714,11 +715,18 @@ def _abs_pct(change: RentChange) -> float:
 
 def send_email(subject: str, body: str) -> None:
     """Send the report over SMTP using env vars. A free Gmail app password works."""
-    host = os.getenv("SMTP_HOST")
-    port = int(os.getenv("SMTP_PORT", "587"))
-    user = os.getenv("SMTP_USER")
+
+    def _clean(val: Optional[str]) -> Optional[str]:
+        # Strip stray spaces/newlines that creep in when pasting secrets on a phone.
+        return val.strip() if isinstance(val, str) else val
+
+    host = _clean(os.getenv("SMTP_HOST"))
+    port_raw = _clean(os.getenv("SMTP_PORT")) or "587"
+    user = _clean(os.getenv("SMTP_USER"))
     password = os.getenv("SMTP_PASSWORD")
-    to_addr = os.getenv("NOTIFY_EMAIL") or user
+    # Gmail shows app passwords with spaces ("abcd efgh ..."); the real value has none.
+    password = password.strip().replace(" ", "") if password else password
+    to_addr = _clean(os.getenv("NOTIFY_EMAIL")) or user
 
     missing = [
         name
@@ -735,15 +743,33 @@ def send_email(subject: str, body: str) -> None:
             "Email not configured. Missing env var(s): " + ", ".join(missing)
         )
 
+    try:
+        port = int(port_raw)
+    except ValueError as exc:
+        raise RuntimeError(f"SMTP_PORT must be a number, got {port_raw!r}") from exc
+
     msg = MIMEText(body, _charset="utf-8")
     msg["Subject"] = subject
     msg["From"] = user
     msg["To"] = to_addr
 
-    with smtplib.SMTP(host, port, timeout=30) as server:
-        server.starttls()
-        server.login(user, password)
-        server.sendmail(user, [to_addr], msg.as_string())
+    try:
+        with smtplib.SMTP(host, port, timeout=30) as server:
+            server.starttls()
+            server.login(user, password)
+            server.sendmail(user, [to_addr], msg.as_string())
+    except socket.gaierror as exc:
+        raise RuntimeError(
+            f"Could not reach mail server {host!r}:{port}. Check the SMTP_HOST "
+            "secret is exactly 'smtp.gmail.com' (no spaces/quotes). "
+            f"[{exc}]"
+        ) from exc
+    except smtplib.SMTPAuthenticationError as exc:
+        raise RuntimeError(
+            "Mail server rejected the login. For Gmail, SMTP_USER must be your full "
+            "address and SMTP_PASSWORD must be a 16-character App Password (not your "
+            f"normal password). [{exc}]"
+        ) from exc
 
 
 # ----------------------------------------------------------------------------
