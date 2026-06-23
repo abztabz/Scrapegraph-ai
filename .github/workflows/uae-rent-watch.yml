@@ -39,11 +39,13 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"          # this repo's code requires Python >= 3.12
 
       - name: Install
         run: |
-          pip install scrapegraphai
+          # Install THIS repo's code (the merged, fixed version) rather than the
+          # older published release on PyPI, then the browser for scraping.
+          pip install -e ../..
           playwright install --with-deps chromium
 
       - name: Check rents and email me

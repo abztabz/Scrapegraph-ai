@@ -59,13 +59,25 @@ from urllib.parse import quote_plus
 
 from pydantic import BaseModel, Field
 
-try:
-    from scrapegraphai.graphs import SmartScraperGraph
-except ImportError as exc:  # pragma: no cover - helpful message when run standalone
-    raise SystemExit(
-        "scrapegraphai is not installed. Install it with `pip install scrapegraphai` "
-        "(and run `playwright install`) before using this tool."
-    ) from exc
+# scrapegraphai is imported lazily by _load_smart_scraper() below — NOT at module
+# load time — so that `--demo` mode and `--help` work even when scrapegraphai or
+# its heavy dependencies can't be imported. Only live scraping needs it.
+
+
+def _load_smart_scraper():
+    """Import SmartScraperGraph on demand, surfacing the *real* error if it fails."""
+    try:
+        from scrapegraphai.graphs import SmartScraperGraph
+
+        return SmartScraperGraph
+    except Exception as exc:  # ImportError or a dependency-version error
+        raise SystemExit(
+            "Could not import scrapegraphai, which is needed for live scraping "
+            f"(it is NOT needed for --demo).\n  Underlying error: {exc!r}\n"
+            "Fix: install it with `pip install scrapegraphai` (or `pip install -e .` "
+            "from the repo root) and run `playwright install`."
+        ) from exc
+
 
 
 # ----------------------------------------------------------------------------
@@ -252,6 +264,7 @@ class RentWatcher:
         url = item.search_url()
         self._log(f"\n🏠 Checking {item.label()}\n     {url}")
 
+        SmartScraperGraph = _load_smart_scraper()
         graph = SmartScraperGraph(
             prompt=(
                 "This is a UAE property portal page listing apartments/villas for "
