@@ -81,18 +81,58 @@ def _load_smart_scraper():
 
 
 def _load_sgai_client(api_key: str):
-    """Import the ScrapeGraphAI hosted-API client (scrapegraph-py) on demand."""
+    """Import the ScrapeGraphAI hosted-API client (scrapegraph-py v2) on demand."""
+    if api_key:
+        os.environ["SGAI_API_KEY"] = api_key  # v2 client also reads this env var
     try:
-        from scrapegraph_py import Client
-
-        return Client(api_key=api_key)
+        from scrapegraph_py import ScrapeGraphAI
     except Exception as exc:
         raise SystemExit(
-            "Could not initialise the ScrapeGraphAI hosted API client.\n"
+            "Could not import the ScrapeGraphAI client.\n"
             f"  Underlying error: {exc!r}\n"
-            "Fix: install it with `pip install scrapegraph-py` and set SGAI_API_KEY "
+            "Fix: `pip install scrapegraph-py` and set SGAI_API_KEY "
             "(get a free key at https://scrapegraphai.com)."
         ) from exc
+    try:
+        return ScrapeGraphAI(api_key=api_key)
+    except TypeError:
+        return ScrapeGraphAI()  # signature variant: reads SGAI_API_KEY from env
+
+
+def _sgai_extract(client, url: str):
+    """Call the v2 extract() method, tolerant of the exact schema kwarg name."""
+    attempts = (
+        {"prompt": SCRAPE_PROMPT, "url": url, "output_schema": AreaRent},
+        {"prompt": SCRAPE_PROMPT, "url": url, "schema": AreaRent.model_json_schema()},
+        {"prompt": SCRAPE_PROMPT, "url": url},
+    )
+    last_exc = None
+    for kwargs in attempts:
+        try:
+            return client.extract(**kwargs)
+        except TypeError as exc:  # unexpected/unknown kwarg -> try the next shape
+            last_exc = exc
+    raise last_exc
+
+
+def _sgai_result_data(result):
+    """Pull the extracted dict out of a v2 ApiResult (or dict); surface API errors."""
+    status = getattr(result, "status", None)
+    if status is not None and str(status).lower() not in (
+        "success",
+        "completed",
+        "ok",
+        "done",
+    ):
+        err = getattr(result, "error", None) or status
+        raise RuntimeError(f"hosted API returned status {status!r}: {err}")
+    data = getattr(result, "data", None)
+    if data is not None:
+        return data
+    if isinstance(result, dict):
+        return result.get("data", result.get("result", result))
+    return result
+
 
 
 # The single instruction both the local scraper and the hosted API use.
@@ -353,16 +393,8 @@ class RentWatcher:
         """Read the page with the ScrapeGraphAI hosted API (renders JS server-side)."""
         if self._sgai_client is None:
             self._sgai_client = _load_sgai_client(self.sgai_api_key)
-        response = self._sgai_client.smartscraper(
-            website_url=url,
-            user_prompt=SCRAPE_PROMPT,
-            output_schema=AreaRent,
-            render_heavy_js=True,  # portal listing pages load prices via JavaScript
-        )
-        # The hosted API returns a dict; the extracted data is under "result".
-        if isinstance(response, dict):
-            response = response.get("result", response)
-        return self._coerce_area_rent(response)
+        result = _sgai_extract(self._sgai_client, url)
+        return self._coerce_area_rent(_sgai_result_data(result))
 
     @staticmethod
     def _coerce_area_rent(result) -> AreaRent:

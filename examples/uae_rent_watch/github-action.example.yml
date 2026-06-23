@@ -49,7 +49,7 @@ jobs:
         run: |
           # Hosted ScrapeGraphAI API renders JS + handles anti-bot server-side,
           # so no local browser/LLM is needed — just the small client library.
-          pip install "scrapegraph-py==1.47.0"
+          pip install "scrapegraph-py>=2.1.0"
 
       - name: Check rents and email me
         env:
