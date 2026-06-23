@@ -73,5 +73,5 @@ jobs:
           git config user.email "rent-watch-bot@users.noreply.github.com"
           # -f because the state file is git-ignored for local use.
           git add -f examples/uae_rent_watch/rent_state.json || true
-          git commit -m "chore: update UAE rent state" || echo "no changes"
+          git commit -m "chore: update UAE rent state [skip ci]" || echo "no changes"
           git push || echo "nothing to push"
