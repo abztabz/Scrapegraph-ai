@@ -1,0 +1,37 @@
+{
+  "_comment": "Copy this file to my_watchlist.json and edit the list below. Each entry is one area you want to watch. Only 'area' is required. 'city' defaults to Dubai. 'property_type' can be apartment, villa, townhouse or studio. 'bedrooms' can be a number like 1, 2, 3 or left out for any. 'portal' can be bayut or propertyfinder (defaults to bayut). You can paste a portal 'url' to control exactly which page is read.",
+  "watchlist": [
+    {
+      "area": "Dubai Marina",
+      "city": "Dubai",
+      "property_type": "apartment",
+      "bedrooms": "1",
+      "portal": "bayut"
+    },
+    {
+      "area": "Jumeirah Village Circle",
+      "city": "Dubai",
+      "property_type": "apartment",
+      "bedrooms": "2",
+      "portal": "propertyfinder"
+    },
+    {
+      "area": "Business Bay",
+      "city": "Dubai",
+      "property_type": "studio"
+    },
+    {
+      "area": "Al Reem Island",
+      "city": "Abu Dhabi",
+      "property_type": "apartment",
+      "bedrooms": "1",
+      "portal": "propertyfinder"
+    },
+    {
+      "area": "Al Nahda",
+      "city": "Sharjah",
+      "property_type": "apartment",
+      "bedrooms": "2"
+    }
+  ]
+}

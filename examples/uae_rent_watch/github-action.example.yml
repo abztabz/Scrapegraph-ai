@@ -1,0 +1,77 @@
+# UAE Rent Watch — free daily checker (GitHub Actions)
+# =====================================================
+#
+# This runs your rent check automatically every day, for free, on GitHub's
+# servers — no computer of your own needs to be on, and there is nothing to pay
+# for. It emails you any rent changes and remembers the latest rents between runs.
+#
+# ── HOW TO USE IT (no coding needed) ─────────────────────────────────────────
+# 1. Put your project on GitHub (a free account is fine). Edit the committed
+#    `examples/uae_rent_watch/watchlist.json` with the areas you want to watch
+#    (you can do this right in the GitHub web editor — no coding needed).
+# 2. Copy THIS file to:  .github/workflows/rent-watch.yml
+# 3. In your repo: Settings ▸ Secrets and variables ▸ Actions ▸ "New repository
+#    secret", and add these secrets:
+#       GEMINI_API_KEY  – a free Google AI Studio key (aistudio.google.com)
+#       SMTP_HOST       – smtp.gmail.com
+#       SMTP_PORT       – 587
+#       SMTP_USER       – your Gmail address
+#       SMTP_PASSWORD   – a Gmail "App Password" (not your normal password)
+#       NOTIFY_EMAIL    – where to send the alert (can be the same Gmail)
+# 4. That's it. It runs daily and you can also trigger it by hand from the
+#    repo's "Actions" tab ▸ "Run workflow".
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: UAE Rent Watch
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # every day at 06:00 UTC (10:00 in the UAE)
+  workflow_dispatch: {}     # lets you run it manually too
+
+permissions:
+  contents: write           # so it can save the latest rents back to the repo
+
+jobs:
+  check-rents:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/uae_rent_watch
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: |
+          pip install scrapegraphai
+          playwright install --with-deps chromium
+
+      - name: Check rents and email me
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+        run: |
+          python uae_rent_watch.py \
+            --watchlist watchlist.json \
+            --model google_genai/gemini-1.5-flash \
+            --state-file rent_state.json \
+            --email
+
+      - name: Remember the latest rents for next time
+        run: |
+          git config user.name "rent-watch-bot"
+          git config user.email "rent-watch-bot@users.noreply.github.com"
+          # -f because rent_state.json is git-ignored for local use, but in CI we
+          # do want to commit it so changes are detected across daily runs.
+          git add -f examples/uae_rent_watch/rent_state.json
+          git commit -m "chore: update UAE rent state" || echo "no changes"
+          git push || echo "nothing to push"
+        working-directory: .
