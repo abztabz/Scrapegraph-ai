@@ -57,15 +57,20 @@ playwright install            # lets it open the property pages
 
 - **Totally free, on your own computer:** install [Ollama](https://ollama.com),
   then `ollama pull llama3.2`. Use `--model ollama/llama3.2` (the default).
-- **Free-tier cloud key (best for the daily auto-check):** get a free key from
-  [Groq](https://console.groq.com) — no credit card, works worldwide — and use
-  `--model groq/llama-3.3-70b-versatile`. Set it once with:
+- **Most reliable (best for the daily auto-check): the ScrapeGraphAI hosted API.**
+  It renders JavaScript and handles anti-bot pages *server-side*, so no local
+  browser or LLM is needed — ideal for big portals like Bayut / Property Finder.
+  Get a free key at [scrapegraphai.com](https://scrapegraphai.com), then:
   ```bash
-  export GROQ_API_KEY="your-key"
+  export SGAI_API_KEY="sgai-..."
+  python uae_rent_watch.py --watchlist my_watchlist.json --sgai
   ```
-  (Google Gemini works too via `--model google_genai/gemini-2.0-flash` +
-  `GEMINI_API_KEY`, but its free tier isn't available in every country.
-  `OPENAI_API_KEY` etc. are picked up automatically as well.)
+- **Bring-your-own LLM (DIY scraping):** a free local model via
+  [Ollama](https://ollama.com) (`--model ollama/llama3.2`), or a cloud key such as
+  [Groq](https://console.groq.com) (`--model groq/llama-3.3-70b-versatile`,
+  worldwide free tier) or Google Gemini (`--model google_genai/gemini-2.0-flash`,
+  free tier not available in every country). Keys are read from env
+  (`GROQ_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`, …).
 
 ---
 

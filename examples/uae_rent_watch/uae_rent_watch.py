@@ -80,6 +80,34 @@ def _load_smart_scraper():
         ) from exc
 
 
+def _load_sgai_client(api_key: str):
+    """Import the ScrapeGraphAI hosted-API client (scrapegraph-py) on demand."""
+    try:
+        from scrapegraph_py import Client
+
+        return Client(api_key=api_key)
+    except Exception as exc:
+        raise SystemExit(
+            "Could not initialise the ScrapeGraphAI hosted API client.\n"
+            f"  Underlying error: {exc!r}\n"
+            "Fix: install it with `pip install scrapegraph-py` and set SGAI_API_KEY "
+            "(get a free key at https://scrapegraphai.com)."
+        ) from exc
+
+
+# The single instruction both the local scraper and the hosted API use.
+SCRAPE_PROMPT = (
+    "This is a UAE property portal page listing apartments/villas for rent in one "
+    "area. Read the rental prices shown on the page and report the typical YEARLY "
+    "asking rent for this area in AED. Return: the average yearly rent, the median "
+    "(most typical) yearly rent, the cheapest and most expensive yearly rent "
+    "visible, how many listings you counted, the currency (AED) and the period. "
+    "All money values must be plain numbers with no commas or currency symbols. "
+    "If prices are shown per month, convert them to yearly by multiplying by 12. "
+    "If you cannot find prices, return nulls."
+)
+
+
 
 # ----------------------------------------------------------------------------
 # Constants
@@ -246,10 +274,15 @@ class RentWatcher:
         threshold_pct: float = DEFAULT_THRESHOLD_PCT,
         verbose: bool = True,
         progress_callback: Optional[Callable[[str], None]] = None,
+        reader: str = "local",
+        sgai_api_key: Optional[str] = None,
     ):
         self.graph_config = graph_config
         self.state_file = state_file
         self.threshold_pct = threshold_pct
+        self.reader = reader  # "local" (SmartScraperGraph) or "sgai" (hosted API)
+        self.sgai_api_key = sgai_api_key
+        self._sgai_client = None
         self.verbose = verbose
         self.progress_callback = progress_callback
 
@@ -265,25 +298,11 @@ class RentWatcher:
         url = item.search_url()
         self._log(f"\n🏠 Checking {item.label()}\n     {url}")
 
-        SmartScraperGraph = _load_smart_scraper()
-        graph = SmartScraperGraph(
-            prompt=(
-                "This is a UAE property portal page listing apartments/villas for "
-                "rent in one area. Read the rental prices shown on the page and "
-                "report the typical YEARLY asking rent for this area in AED. "
-                "Return: the average yearly rent, the median (most typical) yearly "
-                "rent, the cheapest and most expensive yearly rent visible, how "
-                "many listings you counted, the currency (AED) and the period. "
-                "All money values must be plain numbers with no commas or currency "
-                "symbols. If prices are shown per month, convert them to yearly by "
-                "multiplying by 12. If you cannot find prices, return nulls."
-            ),
-            source=url,
-            config=self.graph_config,
-            schema=AreaRent,
-        )
         try:
-            rent = self._coerce_area_rent(graph.run())
+            if self.reader == "sgai":
+                rent = self._scrape_via_sgai(url)
+            else:
+                rent = self._scrape_via_local(url)
         except Exception as exc:  # network / parsing hiccup -> degrade gracefully
             self._log(f"     ⚠️  could not read this area ({exc})")
             rent = AreaRent()
@@ -317,6 +336,32 @@ class RentWatcher:
             )
         )
         return snapshot
+
+    # -- the two readers ---------------------------------------------------
+    def _scrape_via_local(self, url: str) -> AreaRent:
+        """Read the page with the local SmartScraperGraph (your own LLM)."""
+        SmartScraperGraph = _load_smart_scraper()
+        graph = SmartScraperGraph(
+            prompt=SCRAPE_PROMPT,
+            source=url,
+            config=self.graph_config,
+            schema=AreaRent,
+        )
+        return self._coerce_area_rent(graph.run())
+
+    def _scrape_via_sgai(self, url: str) -> AreaRent:
+        """Read the page with the ScrapeGraphAI hosted API (renders JS server-side)."""
+        if self._sgai_client is None:
+            self._sgai_client = _load_sgai_client(self.sgai_api_key)
+        response = self._sgai_client.smartscraper(
+            website_url=url,
+            user_prompt=SCRAPE_PROMPT,
+            output_schema=AreaRent,
+        )
+        # The hosted API returns a dict; the extracted data is under "result".
+        if isinstance(response, dict):
+            response = response.get("result", response)
+        return self._coerce_area_rent(response)
 
     @staticmethod
     def _coerce_area_rent(result) -> AreaRent:
@@ -844,6 +889,12 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     )
     parser.add_argument("--api-key", help="LLM API key (else read from env).")
     parser.add_argument(
+        "--sgai",
+        action="store_true",
+        help="Read pages with the ScrapeGraphAI hosted API (renders JS + handles "
+        "anti-bot). Needs SGAI_API_KEY (or --api-key). Most reliable for big portals.",
+    )
+    parser.add_argument(
         "--demo",
         action="store_true",
         help="Try it with built-in sample data — no network or API key needed.",
@@ -887,6 +938,22 @@ def main(argv: Optional[List[str]] = None) -> int:
             state_file=args.state_file,
             threshold_pct=args.threshold,
             verbose=args.verbose,
+        )
+    elif args.sgai:
+        sgai_key = args.api_key or os.getenv("SGAI_API_KEY")
+        if not sgai_key:
+            raise SystemExit(
+                "No ScrapeGraphAI API key found. Set SGAI_API_KEY (or pass --api-key). "
+                "Get a free key at https://scrapegraphai.com."
+            )
+        print("🌐 Using the ScrapeGraphAI hosted API to read the pages.")
+        watcher = RentWatcher(
+            graph_config={},
+            state_file=args.state_file,
+            threshold_pct=args.threshold,
+            verbose=args.verbose,
+            reader="sgai",
+            sgai_api_key=sgai_key,
         )
     else:
         graph_config = build_graph_config(args)

@@ -12,7 +12,7 @@
 # 2. Copy THIS file to:  .github/workflows/rent-watch.yml
 # 3. In your repo: Settings ▸ Secrets and variables ▸ Actions ▸ "New repository
 #    secret", and add these secrets:
-#       GROQ_API_KEY    – a free Groq key (console.groq.com; no card, works worldwide)
+#       SGAI_API_KEY    – a free ScrapeGraphAI key (scrapegraphai.com; hosted scraping)
 #       SMTP_HOST       – smtp.gmail.com
 #       SMTP_PORT       – 587
 #       SMTP_USER       – your Gmail address
@@ -43,16 +43,17 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"          # this repo's code requires Python >= 3.12
+          python-version: "3.12"
 
       - name: Install
         run: |
-          pip install -e ../.. langchain-groq
-          playwright install --with-deps chromium
+          # Hosted ScrapeGraphAI API renders JS + handles anti-bot server-side,
+          # so no local browser/LLM is needed — just the small client library.
+          pip install scrapegraph-py
 
       - name: Check rents and email me
         env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          SGAI_API_KEY: ${{ secrets.SGAI_API_KEY }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
@@ -61,7 +62,7 @@ jobs:
         run: |
           python uae_rent_watch.py \
             --watchlist watchlist.json \
-            --model groq/llama-3.3-70b-versatile \
+            --sgai \
             --state-file rent_state.json \
             --email
 
