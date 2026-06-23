@@ -59,7 +59,7 @@ playwright install            # lets it open the property pages
   then `ollama pull llama3.2`. Use `--model ollama/llama3.2` (the default).
 - **Free-tier cloud key (better for the daily auto-check):** get a free key from
   [Google AI Studio](https://aistudio.google.com/) and use
-  `--model google_genai/gemini-1.5-flash`. Set it once with:
+  `--model google_genai/gemini-2.0-flash`. Set it once with:
   ```bash
   export GEMINI_API_KEY="your-key"
   ```
@@ -133,7 +133,7 @@ export SMTP_USER="you@gmail.com" SMTP_PASSWORD="your-gmail-app-password"
 export NOTIFY_EMAIL="you@gmail.com"
 python uae_rent_watch.py \
     --watchlist my_watchlist.json \
-    --model google_genai/gemini-1.5-flash \
+    --model google_genai/gemini-2.0-flash \
     --email
 ```
 
@@ -176,7 +176,7 @@ Leave `--email` off if you just want it printed to the screen and saved to a fil
 | ---- | ------- | ----------- |
 | `--watchlist` | `watchlist.example.json` | Your list of areas (JSON). |
 | `--portal` | `bayut` | Default source portal (`bayut`, `propertyfinder` or `dubizzle`) for areas that don't set their own. |
-| `--model` | `ollama/llama3.2` | LLM to use (free local, or `google_genai/gemini-1.5-flash`, etc.). |
+| `--model` | `ollama/llama3.2` | LLM to use (free local, or `google_genai/gemini-2.0-flash`, etc.). |
 | `--api-key` | env | API key for paid/cloud models (else read from env). |
 | `--demo` | off | Use built-in sample data (no network/API key) so you can try it. |
 | `--threshold` | `3.0` | Only flag rent moves at least this big (%). |
