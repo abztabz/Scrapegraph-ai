@@ -336,6 +336,8 @@ class RentWatcher:
     # -- scraping ----------------------------------------------------------
     def scrape_area(self, item: WatchItem) -> RentSnapshot:
         url = item.search_url()
+        with open("DEBUG.txt", "a") as f:
+            f.write(f"scrape_area called. reader={self.reader!r}\n")
         self._log(f"\n🏠 Checking {item.label()}\n     {url}")
 
         try:
