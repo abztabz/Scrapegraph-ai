@@ -3,7 +3,7 @@
 #
 # SETUP (all doable from an iPhone browser — see the chat walkthrough):
 #  1. Add these repository secrets (Settings ▸ Secrets and variables ▸ Actions):
-#       GEMINI_API_KEY  – free key from https://aistudio.google.com
+#       GROQ_API_KEY    – free key from https://console.groq.com (no card; works worldwide)
 #       SMTP_HOST=smtp.gmail.com   SMTP_PORT=587
 #       SMTP_USER       – your Gmail address
 #       SMTP_PASSWORD   – a Gmail "App Password" (not your normal password)
@@ -44,15 +44,14 @@ jobs:
       - name: Install
         run: |
           # Install THIS repo's code (the merged, fixed version) rather than the
-          # older published release on PyPI. langchain-google-genai is the Gemini
-          # provider connector (needed for --model google_genai/...). Then the
-          # browser for scraping.
-          pip install -e ../.. langchain-google-genai
+          # older published release on PyPI. langchain-groq is the Groq provider
+          # connector (free tier, works worldwide). Then the browser for scraping.
+          pip install -e ../.. langchain-groq
           playwright install --with-deps chromium
 
       - name: Check rents and email me
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
@@ -65,7 +64,7 @@ jobs:
           fi
           python uae_rent_watch.py \
             --watchlist watchlist.json \
-            --model google_genai/gemini-2.0-flash \
+            --model groq/llama-3.3-70b-versatile \
             --state-file rent_state.json \
             --email $EXTRA
 
