@@ -3,7 +3,7 @@
 #
 # SETUP (all doable from an iPhone browser — see the chat walkthrough):
 #  1. Add these repository secrets (Settings ▸ Secrets and variables ▸ Actions):
-#       GROQ_API_KEY    – free key from https://console.groq.com (no card; works worldwide)
+#       SGAI_API_KEY    – free key from https://scrapegraphai.com (hosted scraping API)
 #       SMTP_HOST=smtp.gmail.com   SMTP_PORT=587
 #       SMTP_USER       – your Gmail address
 #       SMTP_PASSWORD   – a Gmail "App Password" (not your normal password)
@@ -43,15 +43,13 @@ jobs:
 
       - name: Install
         run: |
-          # Install THIS repo's code (the merged, fixed version) rather than the
-          # older published release on PyPI. langchain-groq is the Groq provider
-          # connector (free tier, works worldwide). Then the browser for scraping.
-          pip install -e ../.. langchain-groq
-          playwright install --with-deps chromium
+          # The hosted ScrapeGraphAI API renders JS + handles anti-bot server-side,
+          # so no local browser/LLM is needed — just the small client library.
+          pip install scrapegraph-py
 
       - name: Check rents and email me
         env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          SGAI_API_KEY: ${{ secrets.SGAI_API_KEY }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
@@ -64,7 +62,7 @@ jobs:
           fi
           python uae_rent_watch.py \
             --watchlist watchlist.json \
-            --model groq/llama-3.3-70b-versatile \
+            --sgai \
             --state-file rent_state.json \
             --email $EXTRA
 
