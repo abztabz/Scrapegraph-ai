@@ -340,11 +340,14 @@ class RentWatcher:
 
         try:
             if self.reader == "sgai":
+                print(f"[DEBUG] About to call _scrape_via_sgai for {url}", flush=True)
                 rent = self._scrape_via_sgai(url)
+                print(f"[DEBUG] _scrape_via_sgai returned: {rent}", flush=True)
             else:
                 rent = self._scrape_via_local(url)
         except Exception as exc:  # network / parsing hiccup -> degrade gracefully
             self._log(f"     ⚠️  could not read this area ({exc})")
+            print(f"[DEBUG] Exception caught: {exc!r}", flush=True)
             rent = AreaRent()
 
         snapshot = RentSnapshot(
