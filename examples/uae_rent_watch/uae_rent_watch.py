@@ -336,23 +336,23 @@ class RentWatcher:
     # -- scraping ----------------------------------------------------------
     def scrape_area(self, item: WatchItem) -> RentSnapshot:
         url = item.search_url()
-        with open("DEBUG.txt", "a") as f:
-            f.write(f"scrape_area called. reader={self.reader!r}\n")
+        with open(self.report_file, "a") as f:
+            f.write(f"[DEBUG] scrape_area called. reader={self.reader!r}\n")
         self._log(f"\n🏠 Checking {item.label()}\n     {url}")
 
         try:
             if self.reader == "sgai":
-                with open("DEBUG.txt", "a") as f:
-                    f.write(f"About to call _scrape_via_sgai for {url}\n")
+                with open(self.report_file, "a") as f:
+                    f.write(f"[DEBUG] About to call _scrape_via_sgai for {url}\n")
                 rent = self._scrape_via_sgai(url)
-                with open("DEBUG.txt", "a") as f:
-                    f.write(f"_scrape_via_sgai returned: {rent}\n")
+                with open(self.report_file, "a") as f:
+                    f.write(f"[DEBUG] _scrape_via_sgai returned: {rent}\n")
             else:
                 rent = self._scrape_via_local(url)
         except Exception as exc:  # network / parsing hiccup -> degrade gracefully
             self._log(f"     ⚠️  could not read this area ({exc})")
-            with open("DEBUG.txt", "a") as f:
-                f.write(f"Exception caught: {exc!r}\n")
+            with open(self.report_file, "a") as f:
+                f.write(f"[DEBUG] Exception caught: {exc!r}\n")
             rent = AreaRent()
 
         snapshot = RentSnapshot(
