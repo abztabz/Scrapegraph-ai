@@ -357,6 +357,7 @@ class RentWatcher:
             website_url=url,
             user_prompt=SCRAPE_PROMPT,
             output_schema=AreaRent,
+            render_heavy_js=True,  # portal listing pages load prices via JavaScript
         )
         # The hosted API returns a dict; the extracted data is under "result".
         if isinstance(response, dict):
