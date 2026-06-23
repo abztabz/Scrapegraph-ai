@@ -73,6 +73,6 @@ jobs:
           # -f because rent_state.json is git-ignored for local use, but in CI we
           # do want to commit it so changes are detected across daily runs.
           git add -f examples/uae_rent_watch/rent_state.json
-          git commit -m "chore: update UAE rent state" || echo "no changes"
+          git commit -m "chore: update UAE rent state [skip ci]" || echo "no changes"
           git push || echo "nothing to push"
         working-directory: .
