@@ -44,8 +44,10 @@ jobs:
       - name: Install
         run: |
           # Install THIS repo's code (the merged, fixed version) rather than the
-          # older published release on PyPI, then the browser for scraping.
-          pip install -e ../..
+          # older published release on PyPI. langchain-google-genai is the Gemini
+          # provider connector (needed for --model google_genai/...). Then the
+          # browser for scraping.
+          pip install -e ../.. langchain-google-genai
           playwright install --with-deps chromium
 
       - name: Check rents and email me
