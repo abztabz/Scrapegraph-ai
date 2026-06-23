@@ -1,0 +1,76 @@
+# UAE Rent Watch — free daily rent checker that emails you.
+# Runs on GitHub's servers, so no computer of your own needs to be on.
+#
+# SETUP (all doable from an iPhone browser — see the chat walkthrough):
+#  1. Add these repository secrets (Settings ▸ Secrets and variables ▸ Actions):
+#       GEMINI_API_KEY  – free key from https://aistudio.google.com
+#       SMTP_HOST=smtp.gmail.com   SMTP_PORT=587
+#       SMTP_USER       – your Gmail address
+#       SMTP_PASSWORD   – a Gmail "App Password" (not your normal password)
+#       NOTIFY_EMAIL    – where to send the alert (can be the same Gmail)
+#  2. Edit examples/uae_rent_watch/watchlist.json with your areas (pencil icon).
+#  3. Actions tab ▸ "UAE Rent Watch" ▸ Run workflow. Tick "use demo data" the
+#     first time to get a guaranteed test email, then run it again unticked for
+#     real rents. After that it runs by itself every day.
+
+name: UAE Rent Watch
+
+on:
+  schedule:
+    - cron: "0 6 * * *"          # daily at 06:00 UTC (10:00 UAE)
+  workflow_dispatch:
+    inputs:
+      use_demo:
+        description: "Use demo data (proves email works without scraping)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write                # to save the latest rents back to the repo
+
+jobs:
+  check-rents:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/uae_rent_watch
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: |
+          pip install scrapegraphai
+          playwright install --with-deps chromium
+
+      - name: Check rents and email me
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+        run: |
+          EXTRA=""
+          if [ "${{ github.event.inputs.use_demo }}" = "true" ]; then
+            EXTRA="--demo"
+          fi
+          python uae_rent_watch.py \
+            --watchlist watchlist.json \
+            --model google_genai/gemini-1.5-flash \
+            --state-file rent_state.json \
+            --email $EXTRA
+
+      - name: Remember the latest rents for next time
+        working-directory: .
+        run: |
+          git config user.name "rent-watch-bot"
+          git config user.email "rent-watch-bot@users.noreply.github.com"
+          # -f because the state file is git-ignored for local use.
+          git add -f examples/uae_rent_watch/rent_state.json || true
+          git commit -m "chore: update UAE rent state" || echo "no changes"
+          git push || echo "nothing to push"
