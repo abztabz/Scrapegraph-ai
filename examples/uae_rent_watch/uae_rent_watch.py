@@ -394,6 +394,7 @@ class RentWatcher:
         if self._sgai_client is None:
             self._sgai_client = _load_sgai_client(self.sgai_api_key)
         result = _sgai_extract(self._sgai_client, url)
+        print(f"     [DEBUG] raw API result: {result!r}")
         return self._coerce_area_rent(_sgai_result_data(result))
 
     @staticmethod
