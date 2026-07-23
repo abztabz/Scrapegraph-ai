@@ -124,6 +124,20 @@ Open the second URL in Safari on your iPhone (the phone must be on the **same
 Wi-Fi network** as the computer running the server). Tip: in Safari use
 *Share → Add to Home Screen* to get an app-like icon.
 
+#### 📷 Scan-to-open (QR code)
+
+So you don't have to type the IP, the landing page shows an **“Open on your
+iPhone” card with a QR code** — point your Camera app at it and tap the
+notification. The QR is generated locally and rendered as a crisp SVG.
+
+This uses the tiny, pure-Python [`qrcode`](https://pypi.org/project/qrcode/)
+package. It's **optional** — the app runs fine without it and just shows the
+URL to type. To enable the QR:
+
+```bash
+pip install qrcode
+```
+
 ### What you get
 
 - A touch-friendly form: keywords, products-per-keyword, model, and a
@@ -153,6 +167,43 @@ default; override with `HOST` / `PORT` env vars.
 > machine/LAN. It has no authentication — don't expose it to the public
 > internet. For sharing, put it behind a reverse proxy with auth, or use the
 > hosted ScrapeGraphAI API.
+
+### 📦 Single-file edition (for phone editors: Koder / a-Shell / Pyto)
+
+[`amazon_uae_finder_single_file.py`](amazon_uae_finder_single_file.py) is the
+**entire web app in one file** (HTML embedded), so you can drop it into a phone
+code editor or shell and just run it:
+
+```bash
+python amazon_uae_finder_single_file.py
+```
+
+It auto-detects its mode:
+
+- **Real mode** — on a computer with `scrapegraphai` installed (and
+  `OPENAI_APIKEY` set), it really scrapes Amazon UAE.
+- **Demo mode** — if `scrapegraphai` isn't available (e.g. on iOS, where
+  Playwright/Chromium can't run), it serves the same mobile UI with realistic
+  **sample data** using only the Python standard library — no keys, no network.
+  A yellow banner makes the demo state obvious.
+
+> The live scraper can't run on iOS itself (it needs headless Chromium + heavy
+> ML libs). Use the single file for a standalone demo on the phone, and run the
+> full tool on a computer — then open it from your phone over Wi-Fi (scan the QR).
+
+### 📲 Open-in-an-editor edition (`amazon_uae_finder_koder.html`)
+
+[`amazon_uae_finder_koder.html`](amazon_uae_finder_koder.html) is a **single
+HTML file that runs entirely in the browser** — no Python, no server, no API
+key. Open it in a phone code editor (e.g. the **Koder** iOS app) or just in
+Safari and it works immediately: type keywords, watch the progress bar, get
+ranked product cards.
+
+The scoring engine and sample data are ported to JavaScript (and verified to
+match the Python tool's scores exactly), so it's a faithful, fully-interactive
+**demo** you can carry on your phone. Because a phone browser can't scrape
+Amazon directly (CORS), it uses built-in sample data — run the Python version
+on a computer for live results.
 
 ## CLI options
 
